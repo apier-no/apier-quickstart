@@ -1,0 +1,131 @@
+name: Sandbox smoke
+
+# Runs the keyless and no-signup examples against the live Apier sandbox and
+# asserts HTTP 200 plus one expected JSON field per call. No secrets.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '17 6 * * 1' # Mondays 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  curl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run curl examples and assert on the response
+        shell: bash
+        run: |
+          set -euo pipefail
+          # --fail-with-body makes each script exit non-zero on any HTTP status >= 400.
+          bash examples/curl/verify.sh > /tmp/verify.json
+          jq -e '.data.verification_status == "pass"' /tmp/verify.json
+          bash examples/curl/authority.sh > /tmp/authority.json
+          jq -e '.data.classification == "sole"' /tmp/authority.json
+          bash examples/curl/proof.sh > /tmp/proof.json
+          jq -e '.data.signature | type == "string"' /tmp/proof.json
+      - name: Assert HTTP 200 on the README curl
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATUS=$(curl -s -o /tmp/readme.json -w '%{http_code}' https://www.apier.no/api/v1/sandbox/public/company/999999999/authority)
+          test "$STATUS" = "200"
+          jq -e '.data.org_number == "999999999"' /tmp/readme.json
+
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+      - name: Run Node examples and assert on the response
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Each example exits non-zero unless the response is HTTP 2xx.
+          node examples/typescript/verify.mjs > /tmp/verify.json
+          jq -e '.data.verification_status == "pass"' /tmp/verify.json
+          node examples/typescript/authority.mjs > /tmp/authority.json
+          jq -e '.data.classification == "sole"' /tmp/authority.json
+          node examples/typescript/proof.mjs > /tmp/proof.json
+          jq -e '.data.signature | type == "string"' /tmp/proof.json
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Run Python examples and assert on the response
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Each example exits non-zero unless the response is HTTP 2xx.
+          python examples/python/verify.py > /tmp/verify.json
+          jq -e '.data.verification_status == "pass"' /tmp/verify.json
+          python examples/python/authority.py > /tmp/authority.json
+          jq -e '.data.classification == "sole"' /tmp/authority.json
+          python examples/python/proof.py > /tmp/proof.json
+          jq -e '.data.signature | type == "string"' /tmp/proof.json
+
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Uses the Go toolchain preinstalled on the runner image.
+      - name: Vet and format check
+        working-directory: examples/go
+        shell: bash
+        run: |
+          set -euo pipefail
+          go version
+          test -z "$(gofmt -l .)"
+          go vet ./...
+      - name: Run Go examples and assert on the response
+        working-directory: examples/go
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The program exits non-zero unless the response is HTTP 200.
+          go run . verify > /tmp/verify.json
+          jq -e '.data.verification_status == "pass"' /tmp/verify.json
+          go run . authority > /tmp/authority.json
+          jq -e '.data.classification == "sole"' /tmp/authority.json
+          go run . proof > /tmp/proof.json
+          jq -e '.data.signature | type == "string"' /tmp/proof.json
+
+  assertion-positive-control:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Examples must exit non-zero on a known-404 URL
+        shell: bash
+        run: |
+          set -euo pipefail
+          BAD='https://www.apier.no/__nonexistent_path__'
+          for cmd in "bash examples/curl/verify.sh" "node examples/typescript/verify.mjs" "python examples/python/verify.py"; do
+            if APIER_BASE_URL="$BAD" $cmd > /dev/null 2>&1; then
+              echo "REGRESSION: '$cmd' exited 0 on a known-404 URL"
+              exit 1
+            fi
+            echo "OK: '$cmd' exited non-zero on a known-404 URL"
+          done
