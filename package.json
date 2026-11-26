@@ -3,10 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Norwegian Altinn 2 → Altinn 3 migration in 10 lines.",
+  "description": "Runnable Apier examples: Norwegian company verification and signing authority (signaturrett, prokura) from Brreg, keyless against the public sandbox.",
   "license": "MIT",
   "engines": { "node": ">=18" },
   "scripts": {
-    "example": "node examples/altinn-migration.mjs"
+    "example": "node examples/altinn-migration.mjs",
+    "verify": "node examples/typescript/verify.mjs",
+    "authority": "node examples/typescript/authority.mjs",
+    "proof": "node examples/typescript/proof.mjs"
   }
 }

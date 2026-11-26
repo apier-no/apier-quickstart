@@ -5,6 +5,26 @@ All notable changes to apier-quickstart are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `examples/curl`, `examples/typescript`, `examples/python` and `examples/go`:
+  Verify, Authority and Proof examples with no dependencies. Verify and
+  Authority run without a key against the public sandbox (org 999999999).
+- `compare/README.md`: what Brreg's open APIs return for signing authority
+  and what the Apier Authority response returns.
+- `.github/workflows/sandbox-smoke.yml`: runs the examples against the live
+  sandbox on push, on pull request and weekly.
+
+### Changed
+- README rebuilt around company verification and signing authority. The
+  Altinn 2 to Altinn 3 lookup moved to "Other endpoints".
+
+### Removed
+- README references to `apier_test_` keys, a "free tier" call allowance,
+  the `X-Apier-Key` header and a Maskinporten guide. None of them describes
+  the current service.
+
 ## [0.2.0] — 2026-05-22
 
 ### Added
