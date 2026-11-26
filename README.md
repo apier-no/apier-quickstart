@@ -97,6 +97,8 @@ Adding `?certificate=true` to a Verify or Authority call wraps the answer in a c
 
 How to verify a certificate offline: https://www.apier.no/docs/guides/verify-certificate
 
+Check the certificate offline: [apier-no/apier-receipt-verify](https://github.com/apier-no/apier-receipt-verify)
+
 ## Raw Brreg vs Apier
 
 [`compare/README.md`](./compare/README.md) shows what Brreg's open APIs return for a real company with prokura and joint signing, what a developer builds on top of them, and what the Apier Authority response returns.
